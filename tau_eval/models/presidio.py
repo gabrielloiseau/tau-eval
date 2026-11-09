@@ -48,10 +48,10 @@ class InstanceCounterAnonymizer(Operator):
         indices = [get_index(v) for v in entity_mapping_for_type.values()]
         return max(indices)
 
-    def validate(self, params: dict = None) -> None:
+    def validate(self, params: dict | None = None) -> None:
         """Validate operator parameters."""
 
-        if "entity_mapping" not in params:
+        if params is None or "entity_mapping" not in params:
             raise ValueError("An input Dict called `entity_mapping` is required.")
         if "entity_type" not in params:
             raise ValueError("An entity_type param is required.")
@@ -212,10 +212,10 @@ class CategoryAnonymizer(Operator):
         entity_mapping[entity_type][text] = new_text
         return new_text
 
-    def validate(self, params: dict = None) -> None:
+    def validate(self, params: dict | None = None) -> None:
         """Validate operator parameters."""
 
-        if "entity_mapping" not in params:
+        if params is None or "entity_mapping" not in params:
             raise ValueError("An input Dict called `entity_mapping` is required.")
         if "entity_type" not in params:
             raise ValueError("An entity_type param is required.")
