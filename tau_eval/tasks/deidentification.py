@@ -93,6 +93,7 @@ class DeIdentification(CustomTask):
         total_0 = 0
         total_1 = 0
         for i, example in tqdm(enumerate(self.dataset)):
+            normalized_text = new_texts[i].lower().replace(" ", "")
             for entity_name, values in example["labels"].items():
                 if values is None:
                     continue
@@ -101,7 +102,7 @@ class DeIdentification(CustomTask):
                 for e in values:
                     recall_dict[entity_name][1] += 1
                     total_1 += 1
-                    if e.lower() in new_texts[i].lower().replace(" ", ""):
+                    if e.lower() in normalized_text:
                         recall_dict[entity_name][0] += 1
                         total_0 += 1
 
