@@ -448,8 +448,8 @@ def plot_trade_off_metric(
     for i, (group_name, scores_dict) in enumerate(model_data.items()):
         if scores_dict["task"]:
             plt.scatter(
-                scores_dict["anon"],
                 scores_dict["task"],
+                scores_dict["anon"],
                 alpha=0.7,
                 label=group_name,
                 color=colors[i % len(colors)],
