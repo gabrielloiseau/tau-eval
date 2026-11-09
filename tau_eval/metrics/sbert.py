@@ -28,13 +28,15 @@ def compute_sbert(
     Computes the cosine similarity between the embeddings of original and rewritten texts.
 
     Args:
-        original: A string or a list of original texts.
-        rewrites: A string or a list of rewritten texts.
+        input_texts: A string or a list of original texts.
+        output_texts: A string or a list of rewritten texts aligned with
+            input_texts. Each corresponding pair is scored in input order.
         sim_model: The loaded SentenceTransformer model.
 
     Returns:
-        A dictionary containing the similarity scores for each input text pair.
-        The dictionary has the key "similarity" with a list of float values.
+        A dictionary with key "sbert" containing a list of float cosine
+        similarities, one per aligned input/output pair in input order.
+        Single-string inputs produce a one-element score list.
     """
     if not isinstance(input_texts, list):
         input_texts = [input_texts]
