@@ -4,7 +4,7 @@ from multiprocessing import Pool
 from litellm import completion
 
 from ..logger import logger
-from .anonymizer import Anonymizer
+from .anonymizer import AnonymizationError, Anonymizer
 
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
@@ -76,6 +76,13 @@ class LLMPII(Anonymizer):
         """
 
     def anonymize(self, text: str, n_retries: int = 3) -> str:
+        """Return the stripped anonymized string.
+
+        Raises:
+            AnonymizationError: Completion failed or the response has no first
+                choice with string message content. The original exception is
+                chained as the cause; the input is never returned as a fallback.
+        """
         provider = f"openrouter/{self.model_name}" if "ollama" not in self.model_name else self.model_name
         try:
             response = completion(
@@ -95,13 +102,21 @@ class LLMPII(Anonymizer):
                 api_key=OPENROUTER_API_KEY,
                 num_retries=n_retries,
             )
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if not isinstance(content, str):
+                raise ValueError("Expected string content in the anonymization response")
+            return content.strip()
         except Exception as e:
-            logger.error(f"🔴 {e}")
-            # Model did not work, returning original text
-            return text
+            raise AnonymizationError("LLM PII anonymization failed") from e
 
     def anonymize_batch(self, texts: list[str], n_jobs: int = 4) -> list[str]:
+        """Return stripped anonymized strings in input order using worker processes.
+
+        Raises:
+            AnonymizationError: Any item failed completion or response validation.
+                The worker failure propagates to the caller; no partial result
+                list or original-input fallback is returned.
+        """
         with Pool(processes=n_jobs) as P:
             anonymized_texts = P.map(self.anonymize, texts)
         return anonymized_texts

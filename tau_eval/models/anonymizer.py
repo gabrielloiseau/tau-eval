@@ -1,3 +1,7 @@
+class AnonymizationError(RuntimeError):
+    """An anonymizer could not produce an anonymized result."""
+
+
 class Anonymizer:
     r"""
     Configuration class for Anonymizer
