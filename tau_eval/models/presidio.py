@@ -7,10 +7,28 @@ from .anonymizer import Anonymizer
 
 
 # Original code from https://microsoft.github.io/presidio/samples/python/pseudonymization/
+class _EntityCounterMapping(dict):
+    """Entity replacements and their next index share the mapping's lifetime."""
+
+    def __init__(self, values):
+        super().__init__(values)
+        self.next_index = InstanceCounterAnonymizer._get_last_index(self) + 1 if self else 0
+
+    def clear(self):
+        super().clear()
+        self.next_index = 0
+
+
 class InstanceCounterAnonymizer(Operator):
     """
     Anonymizer which replaces the entity value
     with an instance counter per entity.
+
+    Each nested entity mapping is initialized once and retains its next index
+    across operator instances. Fresh mappings, replaced nested dictionaries,
+    and cleared mappings start a new lifecycle. After other external edits,
+    call ``reset_counters(entity_mapping)`` before anonymizing more entities.
+    Mapping values remain dictionaries; counter metadata is not a mapping key.
     """
 
     REPLACING_FORMAT = "<{entity_type}_{index}>"
@@ -24,19 +42,23 @@ class InstanceCounterAnonymizer(Operator):
         entity_mapping = params["entity_mapping"]
 
         entity_mapping_for_type = entity_mapping.get(entity_type)
-        if not entity_mapping_for_type:
-            new_text = self.REPLACING_FORMAT.format(entity_type=entity_type, index=0)
-            entity_mapping[entity_type] = {}
+        if entity_mapping_for_type and text in entity_mapping_for_type:
+            return entity_mapping_for_type[text]
 
-        else:
-            if text in entity_mapping_for_type:
-                return entity_mapping_for_type[text]
+        if not isinstance(entity_mapping_for_type, _EntityCounterMapping):
+            entity_mapping_for_type = _EntityCounterMapping(entity_mapping_for_type or {})
+            entity_mapping[entity_type] = entity_mapping_for_type
 
-            previous_index = self._get_last_index(entity_mapping_for_type)
-            new_text = self.REPLACING_FORMAT.format(entity_type=entity_type, index=previous_index + 1)
-
-        entity_mapping[entity_type][text] = new_text
+        new_text = self.REPLACING_FORMAT.format(entity_type=entity_type, index=entity_mapping_for_type.next_index)
+        entity_mapping_for_type[text] = new_text
+        entity_mapping_for_type.next_index += 1
         return new_text
+
+    @staticmethod
+    def reset_counters(entity_mapping: dict) -> None:
+        """Reinitialize each type once after external edits to its replacements."""
+        for entity_type, values in entity_mapping.items():
+            entity_mapping[entity_type] = _EntityCounterMapping(values or {})
 
     @staticmethod
     def _get_last_index(entity_mapping_for_type: dict) -> int:
@@ -71,6 +93,7 @@ class UniquePlaceholderPerEntity(Anonymizer):
         self.anonymizer_engine.add_anonymizer(InstanceCounterAnonymizer)
 
     def anonymize(self, text) -> str:
+        """Anonymize with a fresh entity-counter mapping for this document."""
         entity_mapping = {}
         analyzer_results = self.analyzer.analyze(text=text, language="en")
         anonymized_result = self.anonymizer_engine.anonymize(
