@@ -71,6 +71,14 @@ class IMDBAuthorshipClassification(tn.Classification):
             replace=False
         )
 
+        # Preserve this initialized selection and its counts before rows with
+        # missing values are removed from the classification dataset.
+        self._author_info = {
+            "selected_authors": selected_authors.tolist(),
+            "author_doc_counts": {author: author_counts[author] for author in selected_authors},
+            "total_documents": sum(author_counts[author] for author in selected_authors),
+        }
+
         # Filter dataset to selected authors
         filtered_df = df[df["userId"].isin(selected_authors)].dropna()
 
@@ -88,18 +96,14 @@ class IMDBAuthorshipClassification(tn.Classification):
 
     @property
     def author_info(self) -> dict:
-        """Get information about selected authors and their document counts."""
-        # Reconstruct the original data to get author info
-        dataset = load_dataset("tasksource/imdb62")
-        df = pd.DataFrame(dataset["train"])
-        author_counts = df["userId"].value_counts()
+        """Return a snapshot of the author selection made during initialization.
 
-        rng = np.random.default_rng(self.random_seed)
-        eligible_authors = author_counts[author_counts >= self.min_docs_per_author].index
-        selected_authors = rng.choice(np.sort(eligible_authors), size=self.n_authors, replace=False)
-
+        Counts describe the original training rows before filtering and missing-
+        value removal. Assigning new selection attributes does not reconfigure
+        this task or change its metadata. Returned collections are copies.
+        """
         return {
-            "selected_authors": selected_authors.tolist(),
-            "author_doc_counts": {author: author_counts[author] for author in selected_authors},
-            "total_documents": sum(author_counts[author] for author in selected_authors)
+            "selected_authors": self._author_info["selected_authors"].copy(),
+            "author_doc_counts": self._author_info["author_doc_counts"].copy(),
+            "total_documents": self._author_info["total_documents"],
         }
