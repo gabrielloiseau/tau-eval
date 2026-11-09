@@ -38,7 +38,7 @@ cd tau-eval
 ```
 conda create --name taueval python=3.10        # create the environment
 conda activate taueval                         # activate the environment
-pip install -e .                               # install the required packages
+python -m pip install -e .                               # install the required packages
 ```
 
 
