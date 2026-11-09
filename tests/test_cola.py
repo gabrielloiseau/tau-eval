@@ -17,7 +17,7 @@ class RecordingClassifier(PreTrainedModel):
         self.inputs = []
         self.failure = None
 
-    def forward(self, input_ids):
+    def forward(self, input_ids, attention_mask=None):
         self.grad_modes.append(torch.is_grad_enabled())
         self.inputs.append(input_ids.detach().clone())
         if self.failure is not None:
@@ -35,6 +35,7 @@ def classifier():
 @pytest.fixture
 def tokenizer():
     tokenizer = Mock()
+    tokenizer.pad_token_id = 0
     tokenizer.tokenize.side_effect = str.split
     tokenizer.convert_tokens_to_ids.side_effect = lambda tokens: [int(token == "good") for token in tokens]
     return tokenizer
@@ -115,8 +116,8 @@ def test_compute_cola_preserves_sentence_means_and_skips_empty_texts(classifier,
         assert torch.is_grad_enabled()
 
     assert result["cola"] == pytest.approx([(probabilities[1] + probabilities[0]) / 2, probabilities[1]])
-    assert classifier.grad_modes == [False, False, False]
-    assert classifier.logits_require_grad == [False, False, False]
+    assert classifier.grad_modes and not any(classifier.grad_modes)
+    assert classifier.logits_require_grad and not any(classifier.logits_require_grad)
 
 
 def test_compute_cola_accepts_a_single_string(classifier, tokenizer, monkeypatch):
