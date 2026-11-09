@@ -335,6 +335,9 @@ def plot_radar_model_comparison(
     if num_vars == 0:
         print("Error: No datasets specified for radar axes.")
         return
+    if not model_list:
+        print("No models selected for radar plotting.")
+        return
     # Prepare angles for radar plot
     angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
     angles += angles[:1]
