@@ -35,8 +35,6 @@ and ``output_texts`` lists for the evaluated batch:
 
 .. code-block:: python
 
-    Callable[[list[str], list[str]], dict[str, float]]
-
     def changed_fraction(input_texts: list[str], output_texts: list[str]) -> dict[str, float]:
         assert len(input_texts) == len(output_texts)
         changed = sum(original != rewritten for original, rewritten in zip(input_texts, output_texts))
