@@ -41,14 +41,18 @@ def compute_nli(
     Computes the probability of entailment between two texts using the NLI model.
 
     Args:
-        input_text: The premise text.
-        output_text: The hypothesis text.
+        input_texts: Premise text or a list of premise texts.
+        output_texts: Hypothesis text or a list of hypothesis texts aligned with
+            input_texts. Each pair is scored in the supplied order.
         nli_tokenizer: The tokenizer for the NLI model.
         nli_model: The NLI model.
 
     Returns:
-        A dictionary containing the probability of entailment.
-        The dictionary has the key "entailment" with a float value.
+        A dictionary with key "entailment" containing a list of float
+        probabilities, one per aligned premise/hypothesis pair in input order.
+        Single-string inputs produce a one-element list. This low-level
+        function returns per-pair scores; evaluate_system_output averages the
+        list when integrating NLI into experiment results.
     """
     if not isinstance(input_texts, list):
         input_texts = [input_texts]  # type: ignore
