@@ -81,8 +81,32 @@ def plot_metric_comparison_across_datasets(
         data: The parsed JSON data from Experiment.
         metric_name: The metric to compare (e.g., 'bertscore_f1', 'test_accuracy').
         specific_models (optional): A list of model names to include.
-                                          If None, includes all found models.
-        show_original: If True, includes 'Original Model' performance for the metric.
+            None or an empty list selects all discovered models, but does not
+            automatically append the Original Model baseline.
+        show_original: When specific_models is a nonempty explicit selection,
+            True appends 'Original Model'. Its requested metric must have a
+            numeric, non-NaN value in original_metrics to supply a plotted score.
+
+    Baseline selection and baseline data availability are separate: default or
+    empty model selections do not append the baseline even if its scores exist.
+    With an explicit nonempty selection, missing/non-numeric baseline metrics
+    leave gaps for those datasets; no usable baseline values omit that series.
+
+    For data containing at least one discovered model, select all model names
+    explicitly to include the baseline when its metric data is available::
+
+        data = {
+            "example": {
+                "Example Model": {"test_accuracy": 0.8},
+                "original_metrics": {"test_accuracy": 0.9},
+            }
+        }
+        plot_metric_comparison_across_datasets(
+            data,
+            "test_accuracy",
+            specific_models=get_all_model_method_names(data),
+            show_original=True,
+        )
     """
     datasets = get_all_dataset_names(data)
     all_model_methods = get_all_model_method_names(data)
