@@ -57,7 +57,7 @@ Define an experiment configuration:
 
 .. code-block:: python
 
-    from tau_eval.config import ExperimentConfig
+    from tau_eval import ExperimentConfig
 
     config = ExperimentConfig(
         exp_name="test-experiment",

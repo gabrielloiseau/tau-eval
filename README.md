@@ -87,7 +87,7 @@ deid = DeIdentification(dataset="ai4privacy/pii-masking-400k")
 #### 4. Configure and Run Your Experiment
 Define an experiment configuration:
 ```python
-from tau_eval.config import ExperimentConfig
+from tau_eval import ExperimentConfig
 
 config = ExperimentConfig(
     exp_name="test-experiment",
