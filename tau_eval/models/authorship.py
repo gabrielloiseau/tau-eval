@@ -1,3 +1,5 @@
+from itertools import islice
+
 import torch
 from nltk.tokenize import sent_tokenize
 
@@ -34,9 +36,9 @@ class KeepItSimple(Anonymizer):
         ]
 
         anonymized_texts = []
+        sentence_iter = iter(anonymized_sentences)
         for lenght in sentences_lenghts:
-            text = " ".join([s for s in anonymized_sentences[:lenght]])
-            del anonymized_sentences[:lenght]
+            text = " ".join(islice(sentence_iter, lenght))
             anonymized_texts.append(text)
 
         return anonymized_texts
@@ -72,9 +74,9 @@ class Paraphraser(Anonymizer):
         anonymized_sentences = [sentence["generated_text"] for sentence in anonymized_sentences]
 
         anonymized_texts = []
+        sentence_iter = iter(anonymized_sentences)
         for lenght in sentences_lenghts:
-            text = " ".join([s for s in anonymized_sentences[:lenght]])
-            del anonymized_sentences[:lenght]
+            text = " ".join(islice(sentence_iter, lenght))
             anonymized_texts.append(text)
 
         return anonymized_texts
@@ -121,9 +123,9 @@ class M2M100MT(Anonymizer):
         anonymized_sentences = [sentence for i, sentence in enumerate(anonymized_sentences)]
 
         anonymized_texts = []
+        sentence_iter = iter(anonymized_sentences)
         for lenght in sentences_lenghts:
-            text = " ".join([s for s in anonymized_sentences[:lenght]])
-            del anonymized_sentences[:lenght]
+            text = " ".join(islice(sentence_iter, lenght))
             anonymized_texts.append(text)
 
         return anonymized_texts
