@@ -483,11 +483,12 @@ def compute_correlation(data, metric1_name: str, metric2_name: str,
     Returns:
         dict of {task_name: (correlation, p_value)} for all tasks
     """
+    model_names = get_all_model_method_names(data)
 
     def _extract_metric_pairs(dataset_info):
         """Extract valid metric pairs from a dataset."""
         pairs = []
-        for model_key in get_all_model_method_names(data):
+        for model_key in model_names:
             model_data = dataset_info.get(model_key, {})
             if not isinstance(model_data, dict):
                 continue
