@@ -68,7 +68,15 @@ def compute_cola(
         device: The device to run the model on ("cuda" or "cpu").
 
     Returns:
-        A dictionary containing CoLA scores for each input text.
+        A dictionary with key "cola" containing the sentence-mean score for
+        each nonempty text, in relative input order. Exact empty strings ("")
+        are omitted without a placeholder, so the list can be shorter than
+        output_texts. The experiment evaluator averages only returned scores;
+        omitted empty strings do not contribute to that average.
+
+        For example, for ["First text.", "", "Third text."], if the first and
+        third texts score 0.8 and 0.6, the result is {"cola": [0.8, 0.6]}.
+        There is no entry between those scores for the exact empty string.
     """
     if not isinstance(output_texts, list):
         output_texts = [output_texts]
