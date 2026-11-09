@@ -1,7 +1,8 @@
 """Sentence transformers version of LUAR"""
+
 import torch
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
+from sentence_transformers.util import pairwise_cos_sim
 
 
 def load_luar(
@@ -44,11 +45,11 @@ def compute_luar(
         output_texts = [output_texts]
     assert len(input_texts) == len(output_texts), "inputs are different lengths"
 
-    outputs = []
+    if not input_texts:
+        return {"luar": []}
     embedding_orig: torch.Tensor = sim_model.encode(input_texts, convert_to_tensor=True, show_progress_bar=False)
     embedding_rew: torch.Tensor = sim_model.encode(output_texts, convert_to_tensor=True, show_progress_bar=False)
 
-    for orig, new in zip(embedding_orig, embedding_rew):
-        outputs.append(cos_sim(orig, new).item())
+    outputs = pairwise_cos_sim(embedding_orig, embedding_rew).cpu().tolist()
 
     return {"luar": outputs}
