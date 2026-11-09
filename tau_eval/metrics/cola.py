@@ -12,7 +12,7 @@ from transformers import (
 
 def load_cola(
     model_name: str = "textattack/roberta-base-CoLA", device: str = "cuda"
-) -> tuple[PreTrainedModel, PreTrainedTokenizer]:
+) -> tuple[PreTrainedTokenizer, PreTrainedModel]:
     """
     Loads the CoLA (Corpus of Linguistic Acceptability) model and tokenizer.
 
@@ -21,7 +21,9 @@ def load_cola(
         device: The device to load the model onto ("cuda" or "cpu").
 
     Returns:
-        A tuple containing the loaded model and tokenizer.
+        The tuple (tokenizer, model), in that order. Unpack it as
+        cola_tokenizer, cola_model = load_cola(), then pass the tokenizer before
+        the model to compute_cola(output_texts, cola_tokenizer, cola_model).
     """
     cola_tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name, map_location=device)
     cola_model: PreTrainedModel = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
