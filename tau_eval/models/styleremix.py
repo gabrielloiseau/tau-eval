@@ -52,22 +52,6 @@ class StyleRemix(Anonymizer):
             self.device
         )  # device_map="auto" requires accelerate
         self.base_model.resize_token_embeddings(len(self.tokenizer))  # Resize to add pad token. Value doesn't matter
-        # Load in the first model
-        self.model = PeftModel.from_pretrained(
-            self.base_model,
-            MODEL_PATHS[FIRST_MODEL],
-            adapter_name=FIRST_MODEL,
-            torch_dtype=torch.float16,
-        ).to(self.device)
-        # Load in the rest of the models
-        for cur_adapter in MODEL_PATHS.keys():
-            if cur_adapter != FIRST_MODEL:
-                self.model.load_adapter(MODEL_PATHS[cur_adapter], adapter_name=cur_adapter)
-
-        # print(model.device) # Seems it re-allocates to CPU
-        self.model.to(self.device)
-        self.model.eval()
-
         length = 0.5
         function_words = 0.5
         grade_level = 0.5
@@ -125,6 +109,22 @@ class StyleRemix(Anonymizer):
         for cur_key in cur_keys:
             if cur_key[0] is not None:
                 sliders_dict[cur_key[0]] = cur_key[1]
+
+        # Load in the first model
+        self.model = PeftModel.from_pretrained(
+            self.base_model,
+            MODEL_PATHS[FIRST_MODEL],
+            adapter_name=FIRST_MODEL,
+            torch_dtype=torch.float16,
+        ).to(self.device)
+        # Load only the constituent adapters used by the active combination.
+        for cur_adapter in sliders_dict:
+            if cur_adapter != FIRST_MODEL:
+                self.model.load_adapter(MODEL_PATHS[cur_adapter], adapter_name=cur_adapter)
+
+        # print(model.device) # Seems it re-allocates to CPU
+        self.model.to(self.device)
+        self.model.eval()
 
         # Make the adapter and switch to it
         logger.debug(sliders_dict)
