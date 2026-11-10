@@ -39,6 +39,9 @@ def cola_score(
     """
     Calculates the CoLA score for a single piece of text.
 
+    Classifier inference and probability extraction disable gradient tracking
+    locally, preserving the caller's gradient mode and the model's training mode.
+
     Args:
         text: The text to score.
         cola_tokenizer: The tokenizer for the CoLA model.
@@ -50,8 +53,9 @@ def cola_score(
     """
     tokenize_input = cola_tokenizer.tokenize(text)
     tensor_input = torch.tensor([cola_tokenizer.convert_tokens_to_ids(tokenize_input)]).to(device)
-    output = cola_model(tensor_input)
-    return output.logits.softmax(-1)[0][1].item()
+    with torch.no_grad():
+        output = cola_model(tensor_input)
+        return output.logits.softmax(-1)[0][1].item()
 
 
 def compute_cola(
