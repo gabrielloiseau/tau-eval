@@ -59,6 +59,7 @@ def compute_cola(
     cola_tokenizer: PreTrainedTokenizer,
     cola_model: PreTrainedModel,
     device: str = "cuda",
+    batch_size: int = 32,
 ) -> dict[str, list[float]]:
     """
     Computes CoLA scores for a list of input texts.
@@ -68,6 +69,7 @@ def compute_cola(
         cola_tokenizer: The tokenizer for the CoLA model.
         cola_model: The CoLA model.
         device: The device to run the model on ("cuda" or "cpu").
+        batch_size: Maximum number of sentences per classifier forward pass.
 
     Returns:
         A dictionary with key "cola" containing the sentence-mean score for
@@ -80,20 +82,41 @@ def compute_cola(
         third texts score 0.8 and 0.6, the result is {"cola": [0.8, 0.6]}.
         There is no entry between those scores for the exact empty string.
     """
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
+        raise ValueError("batch_size must be a positive integer")
     if not isinstance(output_texts, list):
         output_texts = [output_texts]
 
-    cola_ls: list[float] = []
-    for i, text in enumerate(output_texts):
+    sentences = []
+    sentence_counts = []
+    for text in output_texts:
         if text == "":
             continue
-        # if text is too big, break it up
-        sentences = sent_tokenize(text)
-        cola_score_list: list[float] = []
+        text_sentences = sent_tokenize(text)
+        sentence_counts.append(len(text_sentences))
+        sentences.extend(text_sentences)
 
-        for sent in sentences:
-            cola_score_list.append(cola_score(sent, cola_tokenizer, cola_model, device))
+    scores = []
+    for offset in range(0, len(sentences), batch_size):
+        # Keep the original tokenization: do not add special tokens or truncate.
+        token_ids = [
+            torch.tensor(cola_tokenizer.convert_tokens_to_ids(cola_tokenizer.tokenize(sentence)), dtype=torch.long)
+            for sentence in sentences[offset : offset + batch_size]
+        ]
+        # Right padding preserves unpadded token positions, irrespective of the
+        # tokenizer's default padding side. Masks exclude only added padding.
+        padding_id = cola_tokenizer.pad_token_id if cola_tokenizer.pad_token_id is not None else 0
+        input_ids = torch.nn.utils.rnn.pad_sequence(token_ids, batch_first=True, padding_value=padding_id)
+        lengths = torch.tensor([len(ids) for ids in token_ids])
+        attention_mask = torch.arange(input_ids.shape[1])[None, :] < lengths[:, None]
+        with torch.no_grad():
+            output = cola_model(input_ids.to(device), attention_mask=attention_mask.to(device))
+            scores.extend(output.logits.softmax(-1)[:, 1].cpu().tolist())
 
-        cola_ls.append(np.mean(cola_score_list))
+    cola_ls: list[float] = []
+    offset = 0
+    for count in sentence_counts:
+        cola_ls.append(np.mean(scores[offset : offset + count]))
+        offset += count
 
     return {"cola": cola_ls}
