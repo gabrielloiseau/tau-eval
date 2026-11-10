@@ -24,13 +24,37 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.11"
+
+      - name: Verify release versions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import ast
+          import os
+          from pathlib import Path
+          import tomllib
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          assert os.environ["RELEASE_TAG"] == f"v{version}", "Release tag must match package version"
+          for filename, names in [("tau_eval/__init__.py", ["__version__"]), ("docs/conf.py", ["version", "release"])]:
+              assignments = {
+                  target.id: ast.literal_eval(node.value)
+                  for node in ast.parse(Path(filename).read_text()).body
+                  if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+                  for target in node.targets if isinstance(target, ast.Name)
+              }
+              for name in names:
+                  assert assignments[name] == version, f"{filename}: {name} must match {version}"
+          print(f"Release versions agree: {version}")
+          PY
 
       - name: Build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
-          python -m pip install build
+          python -m pip install build twine
           python -m build
+          python -m twine check --strict dist/*
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -46,16 +70,9 @@ jobs:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
 
-    # Dedicated environments with protections for publishing are strongly recommended.
-    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      url: https://pypi.org/p/tau-eval
-      #
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
+      url: https://pypi.org/project/tau-eval/${{ github.event.release.name }}/
 
     steps:
       - name: Retrieve release distributions

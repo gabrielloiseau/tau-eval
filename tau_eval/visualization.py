@@ -469,7 +469,7 @@ def plot_trade_off_metric(
     plt.figure(figsize=(12, 8))
 
     # Define a list of colors to cycle through for different groups
-    color_map = plt.cm.get_cmap("tab20")
+    color_map = plt.get_cmap("tab20")
     colors = [color_map(i) for i in range(len(model_data))]
 
     for i, (group_name, scores_dict) in enumerate(model_data.items()):
