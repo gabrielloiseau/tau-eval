@@ -141,14 +141,17 @@ You can explore our tutorials to master **Tau-Eval** more effectively in the [`e
 
 If you use 𝜏 **Tau-Eval** in your work, please cite our paper as follows:
 
-```
-@misc{loiseau2025taueval,
-      title={Tau-Eval: A Unified Evaluation Framework for Useful and Private Text Anonymization}, 
-      author={Gabriel Loiseau, Damien Sileo, Damien Riquet, Maxime Meyer, Marc Tommasi},
-      year={2025},
-      eprint={2506.05979},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2506.05979}, 
+```bibtex
+@inproceedings{loiseau-etal-2025-tau,
+    title = "{Tau-Eval}: A Unified Evaluation Framework for Useful and Private Text Anonymization",
+    author = "Loiseau, Gabriel and Sileo, Damien and Riquet, Damien and Meyer, Maxime and Tommasi, Marc",
+    booktitle = "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = nov,
+    year = "2025",
+    address = "Suzhou, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.emnlp-demos.16/",
+    doi = "10.18653/v1/2025.emnlp-demos.16",
+    pages = "216--227"
 }
 ```
