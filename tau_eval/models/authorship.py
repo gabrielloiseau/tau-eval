@@ -1,3 +1,5 @@
+from threading import Lock
+
 import torch
 from nltk.tokenize import sent_tokenize
 
@@ -81,24 +83,47 @@ class Paraphraser(Anonymizer):
 
 
 class M2M100MT(Anonymizer):
+    """Round-trip translation with one model and a tokenizer per language stage.
+
+    Calls to the single and batch APIs are serialized per instance to protect
+    the shared model and mutable tokenizer state during generation.
+    """
+
     def __init__(self, name="M2M100MT"):
         self.name = name
-        self.pipeline_en_de = pipeline(
-            "translation", "facebook/m2m100_418M", src_lang="en", tgt_lang="de", max_new_tokens=512
-        )
+        self._translation_lock = Lock()
+        checkpoint = "facebook/m2m100_418M"
+        self.pipeline_en_de = pipeline("translation", checkpoint, src_lang="en", tgt_lang="de", max_new_tokens=512)
+        # Passing the loaded model avoids loading the weights again. Explicit
+        # tokenizer checkpoints give each stage its own language state.
         self.pipeline_de_fr = pipeline(
-            "translation", "facebook/m2m100_418M", src_lang="de", tgt_lang="fr", max_new_tokens=512
+            "translation",
+            self.pipeline_en_de.model,
+            tokenizer=checkpoint,
+            device=self.pipeline_en_de.device,
+            src_lang="de",
+            tgt_lang="fr",
+            max_new_tokens=512,
         )
         self.pipeline_fr_en = pipeline(
-            "translation", "facebook/m2m100_418M", src_lang="fr", tgt_lang="en", max_new_tokens=512
+            "translation",
+            self.pipeline_en_de.model,
+            tokenizer=checkpoint,
+            device=self.pipeline_en_de.device,
+            src_lang="fr",
+            tgt_lang="en",
+            max_new_tokens=512,
         )
+
+    def _translate(self, sentences: list[str]) -> list[str]:
+        with self._translation_lock:
+            texts_de = [t["translation_text"] for t in self.pipeline_en_de(sentences)]
+            texts_fr = [t["translation_text"] for t in self.pipeline_de_fr(texts_de)]
+            return [t["translation_text"] for t in self.pipeline_fr_en(texts_fr)]
 
     def anonymize(self, text: str) -> str:
         sentences = sent_tokenize(text)
-        texts_de = [t["translation_text"] for t in self.pipeline_en_de(sentences)]
-        texts_fr = [t["translation_text"] for t in self.pipeline_de_fr(texts_de)]
-        texts_en = [t["translation_text"] for t in self.pipeline_fr_en(texts_fr)]
-
+        texts_en = self._translate(sentences)
         anonymized_sentences = texts_en
         anonymized_text = ""
         for i, sentence in enumerate(anonymized_sentences):
@@ -113,9 +138,7 @@ class M2M100MT(Anonymizer):
             sentences_lenghts.append(len(split))
             sentences += [t for t in split]
 
-        texts_de = [t["translation_text"] for t in self.pipeline_en_de(sentences)]
-        texts_fr = [t["translation_text"] for t in self.pipeline_de_fr(texts_de)]
-        texts_en = [t["translation_text"] for t in self.pipeline_fr_en(texts_fr)]
+        texts_en = self._translate(sentences)
 
         anonymized_sentences = texts_en
         anonymized_sentences = [sentence for i, sentence in enumerate(anonymized_sentences)]
