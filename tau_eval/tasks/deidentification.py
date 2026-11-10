@@ -86,6 +86,30 @@ class DeIdentification(CustomTask):
                 self.name = name
 
     def evaluate(self, new_texts: list[str]) -> dict:
+        """Measure how many annotated sensitive values remain in the output.
+
+        Each <category>_recall is the number of matched annotated values divided
+        by the number of annotated values in that category. Total_recall pools
+        matched counts and annotated counts across all categories and documents;
+        it is not the mean of category scores. Repeated annotations count again.
+
+        A value matches when its lowercased text is a substring of the
+        lowercased output after ASCII spaces (" ") are removed from the output.
+        Annotated values are lowercased only; their spaces are not removed.
+        Lower recall indicates more removal under these matching rules.
+
+        For one document annotated with PERSON=["Alice"] and LOCATION=["Paris"],
+        output "Alice in Paris" has Total_recall=1.0, "Bob in Rome" has 0.0,
+        and "Alice in Rome" has 0.5. Category scores are PERSON_recall and
+        LOCATION_recall, with each category using its own annotation count.
+
+        Args:
+            new_texts: Rewritten texts aligned with the task dataset.
+
+        Returns:
+            Category recall scores and pooled Total_recall. Lower is better
+            when the objective is removing the annotated sensitive values.
+        """
         assert len(self.dataset) == len(new_texts)
 
         recall_dict = {}
