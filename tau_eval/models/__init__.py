@@ -1,4 +1,4 @@
-from .anonymizer import Anonymizer
+from .anonymizer import AnonymizationError, Anonymizer
 
 
-__all__ = ["Anonymizer"]
+__all__ = ["AnonymizationError", "Anonymizer"]
